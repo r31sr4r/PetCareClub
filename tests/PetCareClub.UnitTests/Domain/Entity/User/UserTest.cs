@@ -1,38 +1,17 @@
-﻿using Bogus;
-using FluentAssertions;
+﻿using FluentAssertions;
 using PetCareClub.Domain.Entity;
 using PetCareClub.Domain.Exceptions;
 using PetCareClub.Domain.Common.Security;
-using PetCareClub.Domain.Validation;
 
 namespace PetCareClub.UnitTests.Domain.Entity;
-
+[Collection(nameof(UserTestFixture))]
 public class UserTest
 {
-    private Faker Faker { get; } = new Faker("pt_BR");
+    private readonly UserTestFixture _fixture;
 
-    public string GenerateValidPassword()
+    public UserTest(UserTestFixture fixture)
     {
-        string password;
-        do
-        {
-            password = Faker.Internet.Password(10, false, "[a-zA-Z0-9!@#$%^&*()]");
-        }
-        while (!ValidationHelper.IsValidPassword(password));
-
-        return password;
-    }
-
-    private User CreateValidUser(string? password = "ValidPassword123!")
-    {
-        return new User(
-            name: Faker.Name.FullName(),
-            email: Faker.Internet.Email(),
-            password: password,
-            isActive: true,
-            group: Faker.Commerce.Department(),
-            role: "Admin"
-        );
+        _fixture = fixture;
     }
 
     [Fact(DisplayName = nameof(Instantiate))]
@@ -41,11 +20,11 @@ public class UserTest
     {
         var validData = new
         {
-            Name = Faker.Name.FullName(),
-            Email = Faker.Internet.Email(),
+            Name = _fixture.Faker.Name.FullName(),
+            Email = _fixture.Faker.Internet.Email(),
             Password = "ValidPassword123!",
             IsActive = true,
-            Group = Faker.Commerce.Department(),
+            Group = _fixture.Faker.Commerce.Department(),
             Role = "Admin",
             CreatedAt = DateTime.Now
         };
@@ -73,7 +52,7 @@ public class UserTest
     [Trait("Domain", "User - Aggregates")]
     public void InstantiateErrorWhenNameIsEmpty()
     {
-        Action action = () => new User("", Faker.Internet.Email());
+        Action action = () => new User("", _fixture.Faker.Internet.Email());
 
         action.Should()
             .Throw<EntityValidationException>()
@@ -87,7 +66,7 @@ public class UserTest
     [InlineData("@invalidemail.com")]
     public void InstantiateErrorWhenEmailIsInvalid(string invalidEmail)
     {
-        Action action = () => new User(Faker.Name.FullName(), invalidEmail);
+        Action action = () => new User(_fixture.Faker.Name.FullName(), invalidEmail);
 
         action.Should()
             .Throw<EntityValidationException>()
@@ -98,12 +77,12 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void Update()
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
         var newData = new
         {
-            Name = Faker.Name.FullName(),
-            Email = Faker.Internet.Email(),
-            Group = Faker.Commerce.Department(),
+            Name = _fixture.Faker.Name.FullName(),
+            Email = _fixture.Faker.Internet.Email(),
+            Group = _fixture.Faker.Commerce.Department(),
             Role = "User"
         };
 
@@ -119,7 +98,7 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void UpdateErrorWhenNameIsEmpty()
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
 
         Action action = () => user.Update("", user.Email);
 
@@ -132,7 +111,7 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void Activate()
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
         user.Deactivate(); // To test the activation
 
         user.Activate();
@@ -144,7 +123,7 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void Deactivate()
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
 
         user.Deactivate();
 
@@ -155,9 +134,9 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void UpdatePasswordSuccessfully()
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
         var currentPasswordPlainText = "ValidPassword123!";
-        var newPassword = GenerateValidPassword();
+        var newPassword = _fixture.GenerateValidPassword();
 
         user.UpdatePassword(currentPasswordPlainText, newPassword);
 
@@ -168,9 +147,9 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void UpdatePasswordFailsWhenCurrentPasswordIsIncorrect()
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
         var incorrectCurrentPassword = "WrongPassword!";
-        var newPassword = GenerateValidPassword();
+        var newPassword = _fixture.GenerateValidPassword();
 
         Action action = () => user.UpdatePassword(incorrectCurrentPassword, newPassword);
 
@@ -187,7 +166,7 @@ public class UserTest
     [InlineData("withoutspecialchar123")]
     public void UpdatePasswordFailsWhenNewPasswordIsInvalid(string invalidNewPassword)
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
         var currentPassword = "ValidPassword123!";
 
         Action action = () => user.UpdatePassword(currentPassword, invalidNewPassword);
@@ -201,8 +180,8 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void UpdateGroupSuccessfully()
     {
-        var user = CreateValidUser();
-        var newGroup = Faker.Commerce.Department();
+        var user = _fixture.CreateValidUser();
+        var newGroup = _fixture.Faker.Commerce.Department();
 
         user.Update(user.Name, user.Email, newGroup, user.Role);
 
@@ -213,7 +192,7 @@ public class UserTest
     [Trait("Domain", "User - Methods")]
     public void UpdateRoleSuccessfully()
     {
-        var user = CreateValidUser();
+        var user = _fixture.CreateValidUser();
         var newRole = "SuperAdmin";
 
         user.Update(user.Name, user.Email, user.Group, newRole);
